@@ -1,7 +1,9 @@
+uv
+python-dotenv
 numpy
 pandas
 scikit-learn
 Flask
-joblib
 datetime
+joblib
 google-cloud-storage
