@@ -13,8 +13,11 @@
 
 ## Application Default Credentials:
 1. Refer [Set up Application Default Credentials](https://docs.cloud.google.com/docs/authentication/provide-credentials-adc#how-to) for actual details.
-2. I already created service account and downloaded the key as JSON file to access it as a Application Default Credentials.
-![alt text](image.png)
+2. Use existing / create new service account. Here I created a new service account.
+3. Provide access to this service account to work with expected cloud resource (GCS bucket in this case).
+4. Create JSON Key for the service account. This key will be used by code as a ADC to access cloud resources.
+5. Configure cloud run to use this service account to run the container.
+6. Refer [this image](DocumentationImages\ServiceAccountSetupForCloudRunToAccessGCS.bmp) for details regarding this setup.
 
 ## Docker image:
 1. Build docker image refering to environment variables from .env file - 
