@@ -32,7 +32,7 @@ def load_data_api():
     raw_data = load_data(
         project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
         bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
-        raw_data_folder_path=os.getenv("RAW_DATA_FOLDER_PATH", "gs://customer-churn-demo/data/raw/")
+        raw_data_folder_path=os.getenv("RAW_DATA_FOLDER_PATH", "data/raw/")
     )
     if raw_data.empty is True:
         return "No data loaded."
