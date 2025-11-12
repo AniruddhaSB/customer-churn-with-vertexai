@@ -52,6 +52,22 @@ NO Query String Parameters
 /train
 ```
 
+## Publish Model
+1. Read in the current production model performance (if present).
+2. Read in the latest model evaluation from staging.
+3. Compare model performance (for positive class) across multiple measures (e.g. - F1-Score, Accuracy)
+4. If all measures are improved/better then model will be promoted from stage to prod.
+5. If any of the measure is degraded, model will not be promoted to production.
+6. Along with model, evaluation will be promoted to production are in GCS too.
+7. Stage model and evaluations will be kept as is for backup/ fallbacks.
+8. Endpoint -
+```code
+HTTP GET
+NO Query String Parameters
+
+/publish
+```
+
 ## Next Functionality:
 
 # Other Important Points:
