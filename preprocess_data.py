@@ -6,13 +6,15 @@ from sklearn.preprocessing import LabelEncoder
 from google.cloud import storage
 
 def preprocess_data(
-        df: pd.DataFrame
+        df: pd.DataFrame,
+        input_scalar: any = None,
+        input_encoder: any = None
     ):
     """Function to preprocess data."""
 
     if df.empty is True:
         print("Error: Input DataFrame is empty.")
-        return pd.DataFrame()
+        return pd.DataFrame(), None, None
     
     print("--- Preprocessing Data ---")
     print(f"Input records: {len(df)}")
@@ -38,9 +40,13 @@ def preprocess_data(
     numerical_cols = numerical_cols.drop('HighSupportUser')
 
     print(numerical_cols)
-    scaler = StandardScaler()
-    
-    scaled_data = scaler.fit_transform(df[numerical_cols])
+    if input_scalar is not None:
+        print("Using provided scaler for normalization.")
+        scaler = input_scalar
+        scaled_data = scaler.transform(df[numerical_cols])
+    else:
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(df[numerical_cols])
 
     # 3. Convert the resulting NumPy array back into a DataFrame, 
     #    using the original index and column names
@@ -57,7 +63,12 @@ def preprocess_data(
 
     categorical_cols = df.select_dtypes(include=['object']).columns
     print(categorical_cols)
-    le = LabelEncoder()
+    
+    if input_encoder is not None:
+        print("Using provided encoder for categorical encoding.")
+        le = input_encoder
+    else:
+        le = LabelEncoder()
 
     for col in categorical_cols:
         # Apply Label Encoding to each categorical column
