@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from load_data import load_data
 from preprocess_data import preprocess_data, save_processed_data, save_scalar, save_encoder
 from train_model import load_processed_data, train_model, export_model, export_model_perormance
-
+from host_model import get_model_evaluation_metrics, move_model_from_stage_to_prod, compare_model_performances
 
 app = Flask(__name__)
 
@@ -131,7 +131,7 @@ def train_model_api():
     export_model_outcome, export_model_msg = export_model(
         project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
         bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
-        stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "models/stage/"),
+        stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "model/stage/"),
         algorithm="logistic_regression",
         timestamp=timestamp,
         model=model
@@ -144,7 +144,7 @@ def train_model_api():
     export_model_perormance_outcome, export_model_perormance_msg = export_model_perormance(
         project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
         bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
-        stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "models/stage/"),
+        stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "model/stage/"),
         algorithm="logistic_regression",
         timestamp=timestamp,
         model=model,
@@ -161,6 +161,59 @@ def train_model_api():
     return json.dumps(json_object)
     
 
+@app.route('/publish', methods=['GET'])
+def publish_model_api():
+
+    messages = ["Publish Model Started"]
+    prod_eval_load_outcome,prod_model_evaluation_df, prod_model_evaluation_blob = get_model_evaluation_metrics(
+        project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+        bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+        model_folder_path=os.getenv("PROD_MODEL_FOLDER_PATH", "model/prod/")
+    )
+
+    stage_eval_load_outcome, stage_model_evaluation_df, stage_model_evaluation_blob = get_model_evaluation_metrics(
+        project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+        bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+        model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "model/stage/")
+    )
+
+    if prod_model_evaluation_df.empty is True:
+        messages.append("No production model evaluation data found so publishing the latest stage model as is.")
+        movement_outcome, movement_messgae, live_model = move_model_from_stage_to_prod(
+            project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+            bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+            stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "model/stage/"),
+            stage_eval_blob=stage_model_evaluation_blob,
+            prod_model_folder_path=os.getenv("PROD_MODEL_FOLDER_PATH", "model/prod/")
+        )
+        messages.append("Stage model promoted to production successfully.")
+        messages.append(f"Current Model Served in Production:{live_model}")
+    else:
+        messages.append("Production model evaluation data found. Comparing stage and production model evaluations.")
+        do_promote_new_model_to_prod, comparison_message = compare_model_performances(
+            prod_model_evaluation_df=prod_model_evaluation_df,
+            stage_model_evaluation_df=stage_model_evaluation_df,
+            comparison_metric=["Accuracy", "F1-Score"]
+        )
+        messages.append(comparison_message)
+        if do_promote_new_model_to_prod:
+            messages.append("Promoting stage model to production.")
+            movement_outcome, movement_messgae, live_model = move_model_from_stage_to_prod(
+                project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+                bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+                stage_model_folder_path=os.getenv("STAGE_MODEL_FOLDER_PATH", "model/stage/"),
+                stage_eval_blob=stage_model_evaluation_blob,
+                prod_model_folder_path=os.getenv("PROD_MODEL_FOLDER_PATH", "model/prod/")
+            )
+            messages.append("Stage model promoted to production successfully.")
+            messages.append(f"Current Model Served in Production:{live_model}")
+        else:
+            messages.append("Stage model is not bettter, so NOT promoted to production.")
+            messages.append(f"Current Model Served in Production:SAME AS BEFORE")
+
+    json_object = {"messages": messages}
+    return json.dumps(json_object)
+    
 
 # This block must be at the same level of indentation as the import statement and app = Flask(__name__)
 if __name__ == '__main__':
