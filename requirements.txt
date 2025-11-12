@@ -7,6 +7,5 @@ Flask
 datetime
 joblib
 google-cloud-storage
-google-cloud-aiplatform
 fsspec
 gcsfs
