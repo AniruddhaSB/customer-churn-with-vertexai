@@ -68,8 +68,30 @@ NO Query String Parameters
 /publish
 ```
 
-## Next Functionality:
+## Model Serving:
+1. API is created to expose the model for real time consumption / use ./ inferencing.
+2. We load query string parameters into a dataframe - as user input record.
+3. We load pretrained model from model/prod and use it to predict the output for new record.
+4. We load pretrained scalar() pkl/pickle file and use the same scalar to transform the new input values as part of preprocessing.
+5. We load pretrained encoder() pkl/pickle file and use the smae encoder to transform the new input values as part of preprocessing.
+6. We pass this user input (dataframe with single record) as is from the preprocessing step. This will help do same transformations and feature engineering.
+7. Processed data is then used for prediction using the pretrained model. 
+8. Endpoint -
+```code
+HTTP Get
+Query String Parameters (all are required, no default / error handling is done)
 
+/predict
+
+Churn = 1 example - 
+?CustomerID=1&Age=39&Gender=Male&Tenure=12&Usage%20Frequency=4&Support%20Calls=3&Payment%20Delay=12&Subscription%20Type=Basic&Contract%20Length=Monthly&Total%20Spend=357&Last%20Interaction=15&Churn=1
+
+Churn = 0 example - 
+?CustomerID=1&Age=39&Gender=Male&Tenure=12&Usage%20Frequency=4&Support%20Calls=3&Payment%20Delay=12&Subscription%20Type=Basic&Contract%20Length=Monthly&Total%20Spend=357&Last%20Interaction=15&Churn=1
+
+Note: CustomerID and Churn are useless inputs, will be dropped while preprocessing, so it can be any value.
+
+```
 # Other Important Points:
 
 ## Application Default Credentials:

@@ -10,6 +10,7 @@ from load_data import load_data
 from preprocess_data import preprocess_data, save_processed_data, save_scalar, save_encoder
 from train_model import load_processed_data, train_model, export_model, export_model_perormance
 from host_model import get_model_evaluation_metrics, move_model_from_stage_to_prod, compare_model_performances
+from consume_model import predict_using_pretrained_model
 
 app = Flask(__name__)
 
@@ -57,7 +58,7 @@ def preprocess_data_api():
     messages.append(f"Loaded {len(raw_data)} records.")
 
     processed_data, scaler, le = preprocess_data(
-        df=raw_data
+        df=raw_data, input_scalar=None, input_encoder=None
     )
 
     if processed_data.empty is True:
@@ -214,6 +215,41 @@ def publish_model_api():
     json_object = {"messages": messages}
     return json.dumps(json_object)
     
+
+@app.route('/predict', methods=['GET'])
+def predict_api():
+    query_string_params = request.args.to_dict(flat=False)
+    print(query_string_params)
+    df = pd.DataFrame(query_string_params)
+
+    # Define the desired types in a dictionary
+    dtype_mapping = {
+        'CustomerID': 'int32',
+        'Age': 'int32',
+        'Gender': 'object',
+        'Tenure': 'int32',
+        'Usage Frequency': 'int32',
+        'Support Calls': 'int32',
+        'Payment Delay': 'int32',
+        'Subscription Type': 'object',
+        'Contract Length': 'object',
+        'Total Spend': 'float32',
+        'Last Interaction': 'int32',
+        'Churn': 'int32'
+    }
+
+    # Apply the conversion
+    df = df.astype(dtype_mapping)
+
+    userInput_df, processed_input, predictions = predict_using_pretrained_model(
+        project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+        bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+        prod_model_folder_path=os.getenv("PROD_MODEL_FOLDER_PATH", "model/prod/"),
+        processed_data_folder_path=os.getenv("PROCESSED_DATA_FOLDER_PATH", "data/processed/"),
+        userInput_df=df
+    )
+    return f"User Input Data: {userInput_df.to_dict(orient='records')}, Predictions: {predictions}"
+
 
 # This block must be at the same level of indentation as the import statement and app = Flask(__name__)
 if __name__ == '__main__':
