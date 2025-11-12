@@ -10,6 +10,7 @@ from load_data import load_data
 from preprocess_data import preprocess_data, save_processed_data, save_scalar, save_encoder
 from train_model import load_processed_data, train_model, export_model, export_model_perormance
 from host_model import get_model_evaluation_metrics, move_model_from_stage_to_prod, compare_model_performances
+from expose_model import register_model
 
 app = Flask(__name__)
 
@@ -214,6 +215,24 @@ def publish_model_api():
     json_object = {"messages": messages}
     return json.dumps(json_object)
     
+
+@app.route('/register', methods=['GET'])
+def register_model_api():
+
+    messages = ["Register Model Started"]
+    register_model_outcome, register_model_msg = register_model(
+        project_id=os.getenv("PROJECT_ID", "nimble-octagon-253816"),
+        bucket_name=os.getenv("BUCKET_NAME", "customer-churn-demo"),
+        prod_model_folder_path=os.getenv("PROD_MODEL_FOLDER_PATH", "model/prod/"),
+        model_display_name="customer-churn-demo-model1"
+    )
+    if register_model_outcome is False:
+        messages.append(register_model_msg)
+    messages.append(f"Model registered successfully.{register_model_msg}")
+
+    json_object = {"messages": messages}
+    return json.dumps(json_object)
+
 
 # This block must be at the same level of indentation as the import statement and app = Flask(__name__)
 if __name__ == '__main__':
